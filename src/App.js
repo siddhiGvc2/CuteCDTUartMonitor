@@ -65,6 +65,13 @@ export default function App() {
   const [uartData, setUartData] = useState("");
   const [msg, setMsg] = useState("");
   const [status, setStatus] = useState("Disconnected");
+  const [capture,setCapture]=useState(false);
+  const [mode, setMode] = useState('capture'); // 'capture' or 'play'
+  const [isStarted, setIsStarted] = useState(false);
+  const [timer, setTimer] = useState('00:00:00');
+  const [fileName, setFileName] = useState('');
+  const [capturedPackets, setCapturedPackets] = useState([]);
+  const timerRef = useRef(null);
 
   // Parsed device info
   const [deviceInfo, setDeviceInfo] = useState({
@@ -327,6 +334,65 @@ useEffect(() => {
   };
 }, [status]);
 
+
+
+
+const handleStart = () => {
+  if (mode === 'capture') {
+    // Generate file name
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, ''); // HHMMSS
+    setFileName(`CDACCute.${dateStr}.${timeStr}.txt`);
+    setCapturedPackets([]);
+    setTimer('00:00:00');
+    setIsStarted(true);
+    // Start timer
+    let seconds = 0;
+    timerRef.current = setInterval(() => {
+      seconds++;
+      const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
+      const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+      const secs = (seconds % 60).toString().padStart(2, '0');
+      setTimer(`${hrs}:${mins}:${secs}`);
+    }, 1000);
+  } else if (mode === 'play') {
+    // For play mode, load file and display packets
+    if (fileName) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const packets = content.split('\n').filter(line => line.trim()).map(line => {
+          const [timestamp, data] = line.split(' - ');
+          return { timestamp, data };
+        });
+        setCapturedPackets(packets);
+        setUartData(packets.map(p => `${p.timestamp} - ${p.data}`).join('\n'));
+      };
+      reader.readAsText(fileName);
+    }
+  }
+};
+
+const handleStop = () => {
+  if (mode === 'capture' && capturedPackets.length > 0) {
+    // Save to file
+    const content = capturedPackets.map(p => `${p.timestamp} - ${p.data}`).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  setIsStarted(false);
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+  }
+};
+
 let uartBuffer = "";
 
 
@@ -362,13 +428,16 @@ let uartBuffer = "";
     setReader(reader);
 
     const decoder = new TextDecoder();
+    let packetBuffer = new Uint8Array(); // Buffer for binary packets
     const readLoop = async () => {
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       if (value) {
+        const uint8Array = new Uint8Array(value);
         const text = decoder.decode(value);
+
         setUartData((prev) => prev + text);
 
         uartBuffer += text;
@@ -385,6 +454,27 @@ let uartBuffer = "";
         const lastHash = uartBuffer.lastIndexOf("#");
         if (lastHash >= 0) {
           uartBuffer = uartBuffer.slice(lastHash + 1);
+        }
+
+        // Process binary packets: 0xff ... 0xfe
+        for (let i = 0; i < uint8Array.length; i++) {
+          const byte = uint8Array[i];
+          if (byte === 0xff) {
+            // Start of packet
+            packetBuffer = new Uint8Array([byte]);
+          } else if (byte === 0xfe && packetBuffer.length > 0) {
+            // End of packet
+            packetBuffer = new Uint8Array([...packetBuffer, byte]);
+            if (isStarted && mode === 'capture') {
+              // Save packet with timestamp
+              const hexData = Array.from(packetBuffer).map(b => b.toString(16).padStart(2, '0')).join(' ');
+              setCapturedPackets(prev => [...prev, { timestamp: timer, data: hexData }]);
+            }
+            packetBuffer = new Uint8Array();
+          } else if (packetBuffer.length > 0) {
+            // Continue packet
+            packetBuffer = new Uint8Array([...packetBuffer, byte]);
+          }
         }
       }
     }
@@ -476,13 +566,34 @@ let uartBuffer = "";
     <div className="container">
       <div className="card">
         <div style={{width:'100%',display:"flex",justifyContent:"space-around"}}>
-        <h1 className="title">UART Dashboard</h1>
+        <h1 className="title">UART Monitor- Cute CDT </h1>
+          <div className="center">
+            <div>
+              <label>
+                <input type="radio" value="capture" checked={mode === 'capture'} onChange={(e) => setMode(e.target.value)} />
+                Capture
+              </label>
+              <label>
+                <input type="radio" value="play" checked={mode === 'play'} onChange={(e) => setMode(e.target.value)} />
+                Play
+              </label>
+            </div>
+            <div>
+              <button onClick={handleStart} className="btn connect" disabled={isStarted}>Start</button>
+              <button onClick={handleStop} className="btn disconnect" disabled={!isStarted}>Stop</button>
+            </div>
+            {mode === 'play' && (
+              <input type="file" accept=".txt" onChange={(e) => setFileName(e.target.files[0])} />
+            )}
+            <div>Timer: {timer}</div>
+          </div>
           <div>
         {/* Status */}
         <p className={`status ${status === "Connected" ? "connected" : "disconnected"}`}>
           Status: {status}
         </p>
-      
+
+
         {/* Connect / Disconnect */}
         {!port ? (
           <div className="center">
