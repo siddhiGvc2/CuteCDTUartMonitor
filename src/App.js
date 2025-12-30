@@ -52,6 +52,7 @@ export default function App() {
   const [fileName, setFileName] = useState('');
   const [capturedPackets, setCapturedPackets] = useState([]);
   const timerRef = useRef(null);
+  const isStartedRef = useRef(false);
 
   // Parsed device info
   const [deviceInfo, setDeviceInfo] = useState({
@@ -140,18 +141,29 @@ const handleStart = () => {
       setTimer(`${hrs}:${mins}:${secs}`);
     }, 1000);
   } else if (mode === 'play') {
-    // For play mode, load file and start timed playback
+    // For play mode, load file and start timed display
     if (fileName) {
+      console.log('Starting play mode with file:', fileName.name);
+      setUartData(""); // Clear the terminal
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target.result;
-        const packets = content.split('\n').filter(line => line.trim()).map(line => {
-          const [timestamp, data] = line.split(' - ');
-          return { timestamp, data };
+        console.log('File content loaded, length:', content.length);
+        const lines = content.split('\n').filter(line => line.trim());
+        console.log('Filtered lines:', lines.length);
+        const packets = lines.map(line => {
+          const parts = line.split(/\s+/);
+          const seconds = parseInt(parts[0]);
+          const data = parts.slice(1).join(' ');
+          console.log('Parsed line:', line, '-> seconds:', seconds, 'data:', data);
+          return { timestamp: seconds.toString(), data };
         });
+        console.log('Total packets:', packets.length);
         setCapturedPackets(packets);
         setTimer('00:00:00');
         setIsStarted(true);
+        isStartedRef.current = true;
+        console.log('Play started, isStarted set to true');
         // Start timer
         let seconds = 0;
         timerRef.current = setInterval(() => {
@@ -160,19 +172,25 @@ const handleStart = () => {
           const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
           const secs = (seconds % 60).toString().padStart(2, '0');
           setTimer(`${hrs}:${mins}:${secs}`);
+          console.log('Timer updated to:', `${hrs}:${mins}:${secs}`);
         }, 1000);
 
-        // Schedule packet sending
+        // Schedule display
         packets.forEach((packet, index) => {
-          const [hrs, mins, secs] = packet.timestamp.split(':').map(Number);
-          const packetTime = hrs * 3600 + mins * 60 + secs;
-          setTimeout(async () => {
-            if (writer && isStarted) {
-              // Send packet as binary
-              const bytes = packet.data.split(' ').map(h => parseInt(h, 16));
-              await writer.write(new Uint8Array(bytes));
+          const packetTime = parseInt(packet.timestamp);
+          console.log(`Scheduling packet ${index} for ${packetTime} seconds:`, packet.data);
+          setTimeout(() => {
+            console.log(`Timeout triggered for packet ${index}, isStartedRef.current:`, isStartedRef.current);
+            if (isStartedRef.current) {
+              console.log('Displaying data:', packet.data);
               // Display in terminal
-              setUartData(prev => prev + `${packet.timestamp} - ${packet.data}\n`);
+              setUartData(prev => {
+                const newData = prev + `${packet.data}\n`;
+                console.log('New uartData:', newData);
+                return newData;
+              });
+            } else {
+              console.log('Not displaying because isStartedRef.current is false');
             }
           }, packetTime * 1000);
         });
@@ -197,6 +215,7 @@ const handleStop = () => {
     setUartData(content);
   }
   setIsStarted(false);
+  isStartedRef.current = false;
   if (timerRef.current) {
     clearInterval(timerRef.current);
     timerRef.current = null;
@@ -327,30 +346,7 @@ let uartBuffer = "";
         setPort(null);
       }
       setUartData("");
-      setDeviceInfo({  macId: "",
-    fwVersion: "",
-    serialNumber: "",
-    ssid: "",
-    ssid1: "",
-    ssid2: "",
-    ssid3: "",
-    hbt_counter:0,
-    hbt_timer:0,
-    wifi_errors:0,
-    tcp_errors:0,
-    mqtt_errors:0,
-    mqtt_status:"FAILED",
-    tcp_status:"FAILED",
-    wifi_status:"FAILED",
-    wifi_failure_duration: "", // Store the duration
-    wifi_failed_at: "", // Reset failure timestamp
-    tc:"",
-    pulses:"",
-    lastTc:"",
-    lastPulses:"",
-    tcp_command_time:"",
-    mqtt_command_time:"",
-    inh:""});
+   
       setStatus("Disconnected");
       console.log("✅ Disconnected and cleared data");
     } catch (err) {
@@ -362,16 +358,7 @@ let uartBuffer = "";
     if (!writer || !msg) return;
     try {
       await writer.write(new TextEncoder().encode(msg + "\n"));
-      if(msg.includes("*RST#"))
-      {
-         setDeviceInfo((prev) => ({
-          ...prev,
-          ssid: "0"
-        }));
-          setTimeout(async()=>{
-          await writer.write(new TextEncoder().encode("*SSID?#\n"));
-        },5000)
-      }
+    
       setMsg("");
     } catch (err) {
       console.error("Send error:", err);
