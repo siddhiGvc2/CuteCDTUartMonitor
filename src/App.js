@@ -370,7 +370,7 @@ let uartBuffer = "";
   return (
     <div className="container">
       <div className="card">
-        <div style={{width:'100%',display:"flex",justifyContent:"space-around"}}>
+        <div style={{width:'100%',display:"flex",justifyContent:"space-around",alignItems:'center'}}>
         <h1 className="title">UART Monitor- Cute CDT </h1>
           <div className="center">
             <div>
@@ -439,6 +439,8 @@ let uartBuffer = "";
           </button>
         </div>
 
+        <div className="flex">
+
        <div className="center">
           <TrafficGrid timer={timer}/>
        </div>
@@ -448,6 +450,7 @@ let uartBuffer = "";
         <h2 className="subtitle">Incoming UART Data:</h2>
         <div className="terminal" ref={terminalRef}>
           <pre>{uartData || "No data yet..."}</pre>
+        </div>
         </div>
       </div>
     </div>
