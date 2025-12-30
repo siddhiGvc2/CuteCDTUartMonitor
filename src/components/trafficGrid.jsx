@@ -77,7 +77,7 @@ export default function TrafficGrid({Hours,Mins,Secs,CDTTime,CDTColor}) {
       {columns.map((col, i) => (
         <div
           key={`yellow-${i}`}
-          className={`cell ${CDTColor[i] === "Y" ? "yellow" : ""}`}
+          className={`cell ${CDTColor[i] === "A" ? "yellow" : ""}`}
         />
       ))}
 
