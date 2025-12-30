@@ -9,26 +9,59 @@ export default function TrafficGrid({Hours,Mins,Secs,CDTTime,CDTColor}) {
     { count: 14, color: "green" },
     { count: 27, color: "red" },
   ]);
+  const [localHours,setLocalHours]=useState(Hours);
+  const [localMins,setLocalMins]=useState(Mins);
+  const [localSecs,setLocalSecs]=useState(Secs);
+  const [localCDTTime, setLocalCDTTime] = useState([CDTTime]);
 
-  // Update time every second
+  useEffect(()=>{
+   setLocalHours(Hours);
+  },[Hours])
+
+  useEffect(()=>{
+   setLocalMins(Mins);
+  },[Mins])
+
+  useEffect(()=>{
+   setLocalCDTTime(CDTTime);
+  },[CDTTime])
+
+
+  // Interval: increase time & decrease CDTTime
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setTime(now.toLocaleTimeString("en-GB"));
+    const interval = setInterval(() => {
+      // Update seconds/minutes/hours
+      setLocalSecs(prev => {
+        if (prev + 1 === 60) {
+          setLocalMins(m => {
+            if (m + 1 === 60) {
+              setLocalHours(h => h + 1);
+              return 0;
+            }
+            return m + 1;
+          });
+          return 0;
+        }
+        return prev + 1;
+      });
+
+      // Decrease CDTTime array values
+      setLocalCDTTime(prev => prev.map(val => (val > 0 ? val - 1 : 0)));
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
+  
   return (
     <div className="traffic-container">
       {/* Time */}
-      <div className="time">{Hours}:{Mins}:{Secs}</div>
+      <div className="time">{localHours}:{localMins}:{localSecs}</div>
 
       {/* Counts */}
       {columns.map((col, i) => (
         <div key={i} className="count">
-          {CDTTime[i]}
+          {localCDTTime[i]}
         </div>
       ))}
 
