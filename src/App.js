@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 import TrafficGrid from "./components/trafficGrid";
+import { decodeBase64Pkt } from "./decodeBase64";
 
 
 function getTime(){
@@ -173,7 +174,7 @@ const handleStart = () => {
           const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
           const secs = (seconds % 60).toString().padStart(2, '0');
           setTimer(`${hrs}:${mins}:${secs}`);
-          console.log('Timer updated to:', `${hrs}:${mins}:${secs}`);
+          // console.log('Timer updated to:', `${hrs}:${mins}:${secs}`);
         }, 1000);
 
         // Schedule display
@@ -181,14 +182,14 @@ const handleStart = () => {
           const packetTime = parseInt(packet.timestamp);
           // console.log(`Scheduling packet ${index} for ${packetTime} seconds:`, packet.data);
           setTimeout(() => {
-            console.log(`Timeout triggered for packet ${index}, isStartedRef.current:`, isStartedRef.current);
+            // console.log(`Timeout triggered for packet ${index}, isStartedRef.current:`, isStartedRef.current);
             if (isStartedRef.current) {
               // console.log('Displaying data:', packet.data);
               // Display in terminal
-
+              decodeBase64Pkt(packet.data);
               setUartData(prev => {
                 const newData = prev + `${packet.data}\n`;
-                console.log('New uartData:', newData);
+                // console.log('New uartData:', newData);
                 return newData;
               });
             } else {
