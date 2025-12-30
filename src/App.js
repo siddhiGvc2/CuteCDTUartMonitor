@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
+import TrafficGrid from "./components/trafficGrid";
 
 
 function getTime(){
@@ -143,27 +144,27 @@ const handleStart = () => {
   } else if (mode === 'play') {
     // For play mode, load file and start timed display
     if (fileName) {
-      console.log('Starting play mode with file:', fileName.name);
+      // console.log('Starting play mode with file:', fileName.name);
       setUartData(""); // Clear the terminal
       const reader = new FileReader();
       reader.onload = (e) => {
         const content = e.target.result;
-        console.log('File content loaded, length:', content.length);
+        // console.log('File content loaded, length:', content.length);
         const lines = content.split('\n').filter(line => line.trim());
-        console.log('Filtered lines:', lines.length);
+        // console.log('Filtered lines:', lines.length);
         const packets = lines.map(line => {
           const parts = line.split(/\s+/);
           const seconds = parseInt(parts[0]);
           const data = parts.slice(1).join(' ');
-          console.log('Parsed line:', line, '-> seconds:', seconds, 'data:', data);
+          // console.log('Parsed line:', line, '-> seconds:', seconds, 'data:', data);
           return { timestamp: seconds.toString(), data };
         });
-        console.log('Total packets:', packets.length);
+        // console.log('Total packets:', packets.length);
         setCapturedPackets(packets);
         setTimer('00:00:00');
         setIsStarted(true);
         isStartedRef.current = true;
-        console.log('Play started, isStarted set to true');
+        // console.log('Play started, isStarted set to true');
         // Start timer
         let seconds = 0;
         timerRef.current = setInterval(() => {
@@ -178,12 +179,13 @@ const handleStart = () => {
         // Schedule display
         packets.forEach((packet, index) => {
           const packetTime = parseInt(packet.timestamp);
-          console.log(`Scheduling packet ${index} for ${packetTime} seconds:`, packet.data);
+          // console.log(`Scheduling packet ${index} for ${packetTime} seconds:`, packet.data);
           setTimeout(() => {
             console.log(`Timeout triggered for packet ${index}, isStartedRef.current:`, isStartedRef.current);
             if (isStartedRef.current) {
-              console.log('Displaying data:', packet.data);
+              // console.log('Displaying data:', packet.data);
               // Display in terminal
+
               setUartData(prev => {
                 const newData = prev + `${packet.data}\n`;
                 console.log('New uartData:', newData);
@@ -437,8 +439,9 @@ let uartBuffer = "";
           </button>
         </div>
 
-        {/* Device Info Cards */}
-        
+       <div className="center">
+          <TrafficGrid timer={timer}/>
+       </div>
       
 
         {/* Terminal */}
