@@ -56,6 +56,12 @@ export default function App() {
   const timerRef = useRef(null);
   const isStartedRef = useRef(false);
 
+  const[hours,setHours]=useState(0);
+  const[mins,setMins]=useState(0);
+  const[secs,setSecs]=useState(0);
+  const[CDTTime,setCDTTime]=useState([]);
+  const[CDTColor,setCDTColor]=useState([]);
+
   // Parsed device info
   const [deviceInfo, setDeviceInfo] = useState({
     macId: "",
@@ -186,7 +192,27 @@ const handleStart = () => {
             if (isStartedRef.current) {
               // console.log('Displaying data:', packet.data);
               // Display in terminal
-              decodeBase64Pkt(packet.data);
+              let pkt;
+              pkt = packet.data.trim();
+
+              // 2️⃣ Remove leading ? and trailing ?
+              pkt = pkt.replace(/^\?/, '').replace(/\?$/, '');
+
+              console.log("AFTER TRIM:", pkt);
+               if (/^[A-Za-z0-9+/=]+$/.test(pkt)) {
+                const { Hours, Mins,Secs,CDTime, CDTColor, Command,payload}=decodeBase64Pkt(pkt);
+              if(Hours)
+              {
+                console.log(Hours);
+              setHours(Hours);
+              setMins(Mins);
+              setSecs(Secs);
+              setCDTTime(CDTime);
+              setCDTColor(CDTColor);
+              }
+                
+              }
+             
               setUartData(prev => {
                 const newData = prev + `${packet.data}\n`;
                 // console.log('New uartData:', newData);
@@ -443,7 +469,7 @@ let uartBuffer = "";
         <div className="flex">
 
        <div className="center">
-          <TrafficGrid timer={timer}/>
+          <TrafficGrid Hours={hours} Mins={mins} Secs={secs} CDTTime={CDTTime} CDTColor={CDTColor}/>
        </div>
       
 

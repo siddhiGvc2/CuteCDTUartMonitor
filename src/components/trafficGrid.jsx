@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "../App.css";
 
-export default function TrafficGrid({timer}) {
+export default function TrafficGrid({Hours,Mins,Secs,CDTTime,CDTColor}) {
   const [time, setTime] = useState("");
   const [columns, setColumns] = useState([
     { count: 3, color: "red" },
@@ -23,12 +23,12 @@ export default function TrafficGrid({timer}) {
   return (
     <div className="traffic-container">
       {/* Time */}
-      <div className="time">{timer}</div>
+      <div className="time">{Hours}:{Mins}:{Secs}</div>
 
       {/* Counts */}
       {columns.map((col, i) => (
         <div key={i} className="count">
-          {col.count}
+          {CDTTime[i]}
         </div>
       ))}
 
@@ -36,7 +36,7 @@ export default function TrafficGrid({timer}) {
       {columns.map((col, i) => (
         <div
           key={`red-${i}`}
-          className={`cell ${col.color === "red" ? "red" : ""}`}
+          className={`cell ${CDTColor[i] === "R" ? "red" : ""}`}
         />
       ))}
 
@@ -44,7 +44,7 @@ export default function TrafficGrid({timer}) {
       {columns.map((col, i) => (
         <div
           key={`yellow-${i}`}
-          className={`cell ${col.color === "yellow" ? "yellow" : ""}`}
+          className={`cell ${CDTColor[i] === "Y" ? "yellow" : ""}`}
         />
       ))}
 
@@ -52,7 +52,7 @@ export default function TrafficGrid({timer}) {
       {columns.map((col, i) => (
         <div
           key={`green-${i}`}
-          className={`cell ${col.color === "green" ? "green" : ""}`}
+          className={`cell ${CDTColor[i] === "G" ? "green" : ""}`}
         />
       ))}
     </div>

@@ -96,13 +96,14 @@ export function decodeBase64Pkt(pkt, serialNumber = "1234") {
 
   console.log(payload);
 
-//   return {
-//     Hours,
-//     Mins,
-//     Secs,
-//     CDTime: CDTime.slice(0, 4),
-//     CDTColor: CDTColor.slice(0, 4),
-//     Command,
-//     payload,
-//   };
+
+  return {
+    Hours,
+    Mins,
+    Secs,
+    CDTime: CDTime.slice(0, 4),
+    CDTColor: CDTColor.slice(0, 4),
+    Command,
+    payload,
+  };
 }
